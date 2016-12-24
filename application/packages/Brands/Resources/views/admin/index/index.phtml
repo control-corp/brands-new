@@ -44,14 +44,18 @@
                             <?php echo $this->form->registerNum; ?>
                         </div>
                     </div>
-                <?php if ($this->form->months) : ?>
                     <div class="form-group">
+                        <div class="col-md-3">
+                            <?php echo $this->form->id_wildcard->renderLabel(); ?>
+                            <?php echo $this->form->id_wildcard; ?>
+                        </div>
+                    <?php if ($this->form->months) : ?>
                         <div class="col-md-3">
                             <?php echo $this->form->months->renderLabel(); ?>
                             <?php echo $this->form->months; ?>
                         </div>
+                    <?php endif; ?>
                     </div>
-                <?php endif; ?>
                     <div class="form-group">
                         <div class="col-md-12">
                             <input class="btn btn-primary" type="submit" name="filters[filter]" value="Филтриране" />

@@ -24,6 +24,15 @@ if ($auth && $auth['brandClasses']) {
 
 return array(
     'elements' => array(
+        'id_wildcard' => array(
+            'type' => 'text',
+            'options' => array(
+                'label' => '#',
+                'labelClass' => 'control-label',
+                'class' => 'form-control',
+                'belongsTo' => 'filters',
+            )
+        ),
         'name' => array(
             'type' => 'text',
             'options' => array(

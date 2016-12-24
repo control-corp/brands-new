@@ -81,6 +81,13 @@ return array(
                 ),
             )
         ),
+        'id' => array(
+            'options' => array(
+                'sourceField' => 'id',
+                'sortable' => 1,
+                'title'  => '#',
+            )
+        ),
         'image' => array(
             'options' => array(
                 'sourceField' => 'id',
