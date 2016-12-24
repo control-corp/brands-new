@@ -13,13 +13,21 @@ $this->extend('layouts/admin/default');
                 <div class="panel-heading">Филтри</div>
                 <div class="panel-body">
                     <div class="form-group">
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <?php echo $this->form->dateFrom->renderLabel(); ?>
                             <?php echo $this->form->dateFrom; ?>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <?php echo $this->form->dateTo->renderLabel(); ?>
                             <?php echo $this->form->dateTo; ?>
+                        </div>
+                        <div class="col-md-3">
+                            <?php echo $this->form->continentId->renderLabel(); ?>
+                            <?php echo $this->form->continentId; ?>
+                        </div>
+                        <div class="col-md-3">
+                            <?php echo $this->form->countryId->renderLabel(); ?>
+                            <?php echo $this->form->countryId; ?>
                         </div>
                     </div>
                     <div class="form-group">
@@ -67,14 +75,26 @@ $this->extend('layouts/admin/default');
 			<?php
             if (isset($this->countries[$continentId])) :
                 foreach ($this->countries[$continentId] as $countryId => $country) :
+                    $price = isset($this->prices[$continentId]) && isset($this->prices[$continentId][$country['id']]) ? $this->prices[$continentId][$country['id']] : 0;
+                    $hasPrice = (float) $price ? true : false;
             ?>
             	<tr style="background-color: <?php echo $country['color'] ? $country['color'] : '#FFFFFF'; ?>">
                     <td>
-                    	<?php echo $country['ISO3166Code']; ?> <?php echo $country['name']; ?>
+                        <?php if ($hasPrice) : ?>
+                    	   <a href="<?php echo route(null, ['action' => 'prices-brands', 'countryId' => $country['id']]); ?>"><?php echo $country['ISO3166Code']; ?> <?php echo $country['name']; ?></a>
+                    	<?php else: ?>
+                    	   <?php echo $country['ISO3166Code']; ?> <?php echo $country['name']; ?>
+                    	<?php endif; ?>
                     	<div>Население: <?php echo number_format($country['population'], 0, ".", " "); ?></div>
                 	</td>
                 	<td>
-                		<?php echo isset($this->prices[$continentId]) && isset($this->prices[$continentId][$country['id']]) ? $this->prices[$continentId][$country['id']] : 0; ?>
+            		<?php
+            		if ($hasPrice) :
+                        echo '<a href="' . route(null, ['action' => 'prices-brands', 'countryId' => $country['id']]) . '">' . $price . '</a>';
+            		else:
+                        echo $price;
+            		endif;
+            		?>
                 	</td>
             	</tr>
             <?php
@@ -102,6 +122,23 @@ $this->extend('layouts/admin/default');
 <script>
 $('#change-currency').on('change', function () {
 	$('#btnFilter').trigger('click');
+});
+new chainedOneByOne({
+	//defaultOpt : 'Избери',
+    allowDisable : true,
+    allowDisableColor: 'rgb(232, 232, 232)',
+    chained : [
+    	{
+        	el : '#continentId', to : {
+            	e : '#countryId',
+            	v : <?php echo json_encode($this->form->countryId->getValue()); ?>,
+        	    u : '<?php echo route(\null, array('action' => 'ajax-get-categories'), \false, \false); ?>',
+        	    cb : function () {
+        	    	$('#countryId').selectpicker('refresh');
+        	    }
+     	    }
+        }
+    ]
 });
 </script>
 <?php $this->stop(); ?>

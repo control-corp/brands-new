@@ -6,6 +6,7 @@ use Micro\Form\Form;
 use Micro\Grid\Grid;
 use Micro\Http\Response;
 use Micro\Http\Response\FileResponse;
+use Micro\Http\Response\RedirectResponse;
 
 use Nomenclatures\Model\Continents;
 use Nomenclatures\Model\Types;
@@ -16,7 +17,6 @@ use Micro\Application\Controller\Crud;
 use Micro\Database\Expr;
 use Micro\Http\Response\JsonResponse;
 use Nomenclatures\Model\Currencies;
-use Nomenclatures\Model\Entity\Currency;
 use Brands\Model\Entity\Brand;
 
 class Reports extends Crud
@@ -26,6 +26,70 @@ class Reports extends Crud
 	public function viewAction()
     {
 
+    }
+
+    public function pricesBrandsAction()
+    {
+        $filters = parent::handleFilters();
+
+        if ($filters instanceof Response) {
+            return $filters;
+        }
+
+        $countryId = (int) $this->request->getParam('countryId');
+
+        $dateFrom = new \DateTime(date('01.01.Y'));
+        $dateTo   = new \DateTime(date('31.12.Y'));
+
+        if (isset($filters['dateFrom']) && $filters['dateFrom']) {
+            try {
+                $dateFrom = (new \DateTime($filters['dateFrom']));
+            } catch (\Exception $e) {}
+        }
+
+        if (isset($filters['dateTo']) && $filters['dateTo']) {
+            try {
+                $dateTo = (new \DateTime($filters['dateTo']));
+            } catch (\Exception $e) {}
+        }
+
+        $continents = (new Continents())->fetchCachedPairs(array('active' => 1), null, array('id' => 'ASC'));
+        $countries  = (new Countries())->fetchCachedPairs(array('active' => 1), null, array('id' => 'ASC'));
+        $countriesContinents = (new Countries())->fetchCachedPairs(array('active' => 1), ['id', 'continentId'], array('id' => 'ASC'));
+
+        if (!isset($countries[$countryId])) {
+            return new RedirectResponse(route(null, ['action' => 'prices-continents', 'countryId' => null]));
+        }
+
+        $currentCurrency = null;
+
+        if (isset($filters['currency'])) {
+            $currentCurrency = (new Currencies())->find((int) $filters['currency']);
+        }
+
+        $pricesByBrands = $this->container['db']->fetchAll('
+            SELECT Brands.id, Brands.name, SUM(IFNULL(BrandsStatusesRel.price, 0)) as price
+            FROM Brands
+            INNER JOIN BrandsStatusesRel ON Brands.id = BrandsStatusesRel.brandId
+            WHERE BrandsStatusesRel.date BETWEEN "' . $dateFrom->format('Y-m-d') . '" AND "' . $dateTo->format('Y-m-d') . '" AND Brands.countryId = ' . $countryId . '
+            GROUP BY Brands.id
+        ');
+
+        $dummyBrand = new Brand();
+        $dummyBrand->setCountryId($countryId);
+
+        foreach ($pricesByBrands as $k => $v) {
+            $pricesByBrands[$k]['price'] = $dummyBrand->getFormatedPrice($v['price'], $currentCurrency);
+        }
+
+        return [
+            'dateFrom'        => $dateFrom,
+            'dateTo'          => $dateTo,
+            'pricesByBrands'  => $pricesByBrands,
+            'continent'       => isset($countriesContinents[$countryId]) && isset($continents[$countriesContinents[$countryId]]) ? $continents[$countriesContinents[$countryId]] : '',
+            'country'         => isset($countries[$countryId]) ? $countries[$countryId] : '',
+            'currencySymbol'  => $currentCurrency ? $currentCurrency['symbol'] : $dummyBrand->getCurrencySymbol(),
+        ];
     }
 
     public function pricesContinentsAction()
@@ -50,11 +114,14 @@ class Reports extends Crud
             //$currentCurrency = (new Currencies())->find((int) config('currency.default'));
         }
 
-        $continents  = (new Continents())->fetchCachedPairs(array('active' => 1), null, array('id' => 'ASC'));
-        $countries   = array();
-        $populations = array();
-
+        $continents    = (new Continents())->fetchCachedPairs(array('active' => 1), null, array('id' => 'ASC'));
+        $countries     = array();
+        $populations   = array();
         $countriesRows = (new Countries())->addWhere('active', 1)->addOrder('name', 'ASC')->getItems();
+
+        if (isset($filters['continentId']) && !empty($filters['continentId'])) {
+            $continents = array_intersect_key($continents, array_flip($filters['continentId']));
+        }
 
         $dateFrom = date('Y-01-01');
         $dateTo   = date('Y-12-31');
@@ -82,6 +149,13 @@ class Reports extends Crud
         $dummyBrand = new Brand();
 
         foreach ($countriesRows as $countryRow) {
+
+            if (isset($filters['countryId'])
+                && !empty($filters['countryId'])
+                && !in_array($countryRow['id'], $filters['countryId'])
+            ) {
+                continue;
+            }
 
             if (empty($countryRow['continentId'])) {
                 continue;

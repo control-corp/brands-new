@@ -1,0 +1,45 @@
+<?php
+
+$this->extend('layouts/admin/default');
+
+?>
+
+<h1>Справка по цени за периода <?php echo $this->dateFrom->format('d.m.Y'); ?> - <?php echo $this->dateTo->format('d.m.Y'); ?></h1>
+
+<form class="form-horizontal filter" action="<?php echo route(); ?>" method="post">
+    <div class="row">
+        <div class="col-md-12">
+            <a class="btn btn-default" href="<?php echo route(null, ['action' => 'prices-continents', 'countryId' => null]); ?>">Назад</a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 table-responsive">
+            <h3 style="margin-top: 10px;"><?php echo $this->continent . ' / ' . $this->country . ' в <strong>' . $this->currencySymbol . '</strong>'; ?></h3>
+            <table class="table table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th style="width: 50%" class="text-center">Марка</th>
+                        <th style="width: 50%" class="text-center">Общ бюджет за периода</th>
+                    </tr>
+                </thead>
+                <tbody>
+            <?php foreach ($this->pricesByBrands as $brand) : ?>
+                    <tr>
+                        <td><?php echo $brand['name']; ?></td>
+                        <td><?php echo $brand['price']; ?></td>
+                    </tr>
+            <?php endforeach;?>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Общо</th>
+                        <th>
+                        	<?php echo array_sum(array_column($this->pricesByBrands, 'price')); ?>
+                        	<?php echo ' ' . $this->currencySymbol; ?>
+                    	</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</form>
