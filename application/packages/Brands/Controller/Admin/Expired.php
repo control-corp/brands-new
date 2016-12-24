@@ -56,6 +56,10 @@ class Expired extends Crud
 
         $this->getModel()->filterClasses();
 
+        if (isset($filters['id_wildcard'])) {
+            $this->getModel()->addWhere('id', '%' . $filters['id_wildcard'] . '%');
+        }
+
         $this->getModel()->addWhere(new Expr('reNewDate IS NOT NULL AND reNewDate < DATE("' . $now . '")'));
 
         if ($this->request->getParam('orderField') === null) {
