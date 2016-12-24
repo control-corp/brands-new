@@ -1,0 +1,107 @@
+<?php
+
+$this->extend('layouts/admin/default');
+
+?>
+
+<h1>Справка по цени за периода <?php echo $this->form->dateFrom->getValue(); ?> - <?php echo $this->form->dateTo->getValue(); ?></h1>
+
+<form class="form-horizontal filter" action="<?php echo route(); ?>" method="post">
+	<div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">Филтри</div>
+                <div class="panel-body">
+                    <div class="form-group">
+                        <div class="col-md-6">
+                            <?php echo $this->form->dateFrom->renderLabel(); ?>
+                            <?php echo $this->form->dateFrom; ?>
+                        </div>
+                        <div class="col-md-6">
+                            <?php echo $this->form->dateTo->renderLabel(); ?>
+                            <?php echo $this->form->dateTo; ?>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-md-12">
+                            <input class="btn btn-primary" type="submit" id="btnFilter" name="filters[filter]" value="Филтриране" />
+                            <input class="btn btn-default" type="submit" name="filters[reset]" value="Нулиране" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+    	<div class="col-md-3">
+    		<label class="control-label">Валута</label>
+        	<select id="change-currency" class="form-control" name="filters[currency]">
+    			<?php echo \Micro\Application\Utils::buildOptions((new \Nomenclatures\Model\Currencies)->fetchCachedPairs(), (isset($this->filters['currency']) ? (int) $this->filters['currency'] : 0), 'Избери'); ?>
+        	</select>
+    	</div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 table-responsive">
+        <?php foreach ($this->continents as $continentId => $continent) : ?>
+            <h3><?php echo $continent; ?></h3>
+            <table class="table table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th style="width: 50%" class="text-center">Държава</th>
+                        <th style="width: 50%" class="text-center">Общ бюджет за периода</th>
+                    </tr>
+                    <tr>
+                        <th>
+                            <div>Общо държави: <?php echo (isset($this->countries[$continentId]) ? count($this->countries[$continentId]) : 0); ?></div>
+                            <div>Общо население: <?php echo (isset($this->populations[$continentId]) ? number_format($this->populations[$continentId], 0, ".", " ") : 0); ?></div>
+                        </th>
+                        <th>
+                         <?php if ($this->currentCurrency) : ?>
+							<?php echo isset($this->prices[$continentId]) ? array_sum($this->prices[$continentId]) : 0; ?>
+							<?php echo ' ' . $this->currentCurrency['symbol']; ?>
+						<?php endif; ?>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+			<?php
+            if (isset($this->countries[$continentId])) :
+                foreach ($this->countries[$continentId] as $countryId => $country) :
+            ?>
+            	<tr style="background-color: <?php echo $country['color'] ? $country['color'] : '#FFFFFF'; ?>">
+                    <td>
+                    	<?php echo $country['ISO3166Code']; ?> <?php echo $country['name']; ?>
+                    	<div>Население: <?php echo number_format($country['population'], 0, ".", " "); ?></div>
+                	</td>
+                	<td>
+                		<?php echo isset($this->prices[$continentId]) && isset($this->prices[$continentId][$country['id']]) ? $this->prices[$continentId][$country['id']] : 0; ?>
+                	</td>
+            	</tr>
+            <?php
+                endforeach;
+            endif;
+            ?>
+                </tbody>
+            <?php if ($this->currentCurrency) : ?>
+                <tfoot>
+                    <tr>
+                        <th>Общо</th>
+                        <th>
+                        	<?php echo isset($this->prices[$continentId]) ? array_sum($this->prices[$continentId]) : 0; ?>
+                        	<?php echo ' ' . $this->currentCurrency['symbol']; ?>
+                    	</th>
+                    </tr>
+                </tfoot>
+            <?php endif; ?>
+            </table>
+        <?php endforeach; ?>
+        </div>
+    </div>
+</form>
+<?php $this->start('scripts'); ?>
+<script>
+$('#change-currency').on('change', function () {
+	$('#btnFilter').trigger('click');
+});
+</script>
+<?php $this->stop(); ?>
