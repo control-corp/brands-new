@@ -1,0 +1,9 @@
+/vendor
+/data/log
+/data/cache
+/public/uploads
+/.settings
+/.buildpath
+/.project
+/data/session
+/data/classes.php
