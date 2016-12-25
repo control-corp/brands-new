@@ -204,6 +204,135 @@ class Reports extends Crud
         ];
     }
 
+    public function exportPricesBrandsAction()
+    {
+        $data = $this->pricesBrandsAction();
+
+        $phpExcel = new \PHPExcel();
+        $phpExcel->setActiveSheetIndex(0);
+
+        $sheet = $phpExcel->getActiveSheet();
+
+        $rowIndex = 1;
+
+        $label = sprintf('Период %s - %s', $data['dateFrom']->format('d.m.Y'), $data['dateTo']->format('d.m.Y'));
+        $this->addHeaderRow($sheet, 'A' . $rowIndex . ':B' . $rowIndex, $label, 16);
+
+        $value = $sheet->getCell('A' . $rowIndex)->getValue();
+        $sheet->getColumnDimension('A')->setWidth(mb_strwidth($value));
+
+        $rowIndex++;
+        $rowIndex++;
+
+        $label = $data['continent'] . '/' . $data['country'] . ' в ' . $data['currencySymbol'];
+        $this->addHeaderRow($sheet, 'A' . $rowIndex . ':B' . $rowIndex, $label, 14);
+        $rowIndex++;
+        $rowIndex++;
+
+        $this->addHeaderRow($sheet, 'A' . $rowIndex, 'Марка', 10, true, 'left');
+        $this->addHeaderRow($sheet, 'B' . $rowIndex, 'Общ бюджет за периода', 10, true, 'right');
+        $rowIndex++;
+
+        foreach ($data['pricesByBrands'] as $brand) {
+
+            $sheet->setCellValue('A' . $rowIndex, $brand['name']);
+            $sheet->getStyle('A' . $rowIndex)->getAlignment()->setWrapText(true);
+
+            $sheet->setCellValue('B' . $rowIndex, $brand['price']);
+            $sheet->getStyle('B' . $rowIndex)->getAlignment()->setHorizontal('right');
+
+            $rowIndex++;
+        }
+
+        $this->addHeaderRow($sheet, 'A' . $rowIndex, 'Общо', 10, true, 'left');
+        $this->addHeaderRow($sheet, 'B' . $rowIndex, array_sum(array_column($data['pricesByBrands'], 'price')) . ' ' . $data['currencySymbol'], 10, true, 'right');
+
+        $sheet->getColumnDimension('A')->setWidth(70);
+        $sheet->getColumnDimension('B')->setWidth(30);
+
+        $sheet->setSelectedCell('A1');
+
+        $writer = \PHPExcel_IOFactory::createWriter ($phpExcel, 'Excel5');
+        $writer->save('data/prices-brands.xls');
+
+        return new FileResponse('data/prices-brands.xls');
+    }
+
+    public function exportPricesContinentsAction()
+    {
+        $data = $this->pricesContinentsAction();
+
+        $phpExcel = new \PHPExcel();
+        $phpExcel->setActiveSheetIndex(0);
+
+        $sheet = $phpExcel->getActiveSheet();
+
+        $rowIndex = 1;
+
+        $label = sprintf('Справка по цени за периода %s - %s', $data['form']->dateFrom->getValue(), $data['form']->dateTo->getValue());
+        $this->addHeaderRow($sheet, 'A' . $rowIndex . ':B' . $rowIndex, $label, 16);
+
+        $rowIndex++;
+        $rowIndex++;
+
+        foreach ($data['continents'] as $continentId => $continent) {
+
+            $this->addHeaderRow($sheet, 'A' . $rowIndex . ':B' . $rowIndex, $continent, 16);
+            $rowIndex++;
+
+            $this->addHeaderRow($sheet, 'A' . $rowIndex, 'Държава', 10, true, 'left');
+            $this->addHeaderRow($sheet, 'B' . $rowIndex, 'Общ бюджет за периода', 10, true, 'right');
+            $rowIndex++;
+
+            $this->addHeaderRow($sheet, 'A' . $rowIndex, "Общо държави: " . (isset($data['countries'][$continentId]) ? count($data['countries'][$continentId]) : 0) . "\nОбщо население: " . (isset($data['populations'][$continentId]) ? number_format($data['populations'][$continentId], 0, ".", " ") : 0), 10, true, 'left');
+            $sheet->getStyle('A' . $rowIndex)->getAlignment()->setWrapText(true);
+
+            if ($data['currentCurrency']) {
+                $total = (isset($data['prices'][$continentId]) ? array_sum($data['prices'][$continentId]) : 0) . ' ' . $data['currentCurrency']['symbol'];
+                $this->addHeaderRow($sheet, 'B' . $rowIndex, $total, 10, true, 'right');
+            }
+
+            $rowIndex++;
+
+            if (isset($data['countries'][$continentId])) {
+
+                foreach ($data['countries'][$continentId] as $countryId => $country) {
+
+                    $priceCellValue = isset($data['prices'][$continentId]) && isset($data['prices'][$continentId][$country['id']]) ? $data['prices'][$continentId][$country['id']] : 0;
+                    $countryCellValue = $country['ISO3166Code'] . ' ' . $country['name'] . "\nНаселение: " . number_format($country['population'], 0, ".", " ");
+
+                    $sheet->setCellValue('A' . $rowIndex, $countryCellValue);
+                    $sheet->getStyle('A' . $rowIndex)->getAlignment()->setWrapText(true);
+
+                    $sheet->setCellValue('B' . $rowIndex, $priceCellValue);
+                    $sheet->getStyle('B' . $rowIndex)->getAlignment()->setHorizontal('right');
+
+                    $rowIndex++;
+                }
+            }
+
+            if ($data['currentCurrency']) {
+
+                $total = (isset($data['prices'][$continentId]) ? array_sum($data['prices'][$continentId]) : 0) . ' ' . $data['currentCurrency']['symbol'];
+
+                $this->addHeaderRow($sheet, 'A' . $rowIndex, 'Общо', 10, true, 'left');
+                $this->addHeaderRow($sheet, 'B' . $rowIndex, $total, 10, true, 'right');
+
+                $rowIndex++;
+            }
+        }
+
+        $sheet->getColumnDimension('A')->setAutoSize(true);
+        $sheet->getColumnDimension('B')->setAutoSize(true);
+
+        $sheet->setSelectedCell('A1');
+
+        $writer = \PHPExcel_IOFactory::createWriter ($phpExcel, 'Excel5');
+        $writer->save('data/prices-continents.xls');
+
+        return new FileResponse('data/prices-continents.xls');
+    }
+
     public function allBrandsAction()
     {
         $filters = parent::handleFilters();
@@ -426,26 +555,6 @@ class Reports extends Crud
         $isAdmin = is_allowed('Brands\Controller\Admin\Reports@view');
         $maxRange = ($isAdmin ? 2 : 1);
 
-        function addHeaderRow($excelActiveSheet, $index, $value = '', $size = 10, $bold = true, $horizontal = null)
-        {
-            if ($horizontal == null) {
-                $horizontal = \PHPExcel_Style_Alignment::HORIZONTAL_CENTER;
-            }
-
-            $parts = explode(':', $index);
-
-            $excelActiveSheet->setCellValue($parts[0], $value);
-
-            if (isset($parts[1])) {
-                $excelActiveSheet->mergeCells($index);
-            }
-
-            $excelActiveSheet->getStyle($index)->getFont()->setBold($bold);
-            $excelActiveSheet->getStyle($index)->getFont()->setSize($size);
-            $excelActiveSheet->getStyle($index)->getAlignment()->setHorizontal($horizontal);
-            $excelActiveSheet->getStyle($index)->getAlignment()->setWrapText(true);
-        }
-
         $brands = $this->brandsAction();
 
         if ($brands instanceof Response || empty($brands['brands'])) {
@@ -463,38 +572,38 @@ class Reports extends Crud
         $countTypes = count($brands['types']);
         $count = $countTypes * $maxRange + 1;
 
-        addHeaderRow($sheet, 'A' . $rowIndex . ':' . $chars[$count - 1] . $rowIndex, $brands['form']->brandId->getValue(), 30);
+        $this->addHeaderRow($sheet, 'A' . $rowIndex . ':' . $chars[$count - 1] . $rowIndex, $brands['form']->brandId->getValue(), 30);
         $rowIndex++;
 
         foreach ($brands['continents'] as $continentId => $continent) {
 
             $cellIndex = 'A';
-            addHeaderRow($sheet, $cellIndex . $rowIndex . ':' . $chars[$count - 1] . $rowIndex, $continent, 14);
+            $this->addHeaderRow($sheet, $cellIndex . $rowIndex . ':' . $chars[$count - 1] . $rowIndex, $continent, 14);
 
             $rowIndex++;
 
-            addHeaderRow($sheet, $cellIndex . $rowIndex, 'Държава', 12);
+            $this->addHeaderRow($sheet, $cellIndex . $rowIndex, 'Държава', 12);
 
             $cellIndex++;
-            addHeaderRow($sheet, $cellIndex . $rowIndex . ':' . $chars[array_search($cellIndex, $chars) + $countTypes - 1] . $rowIndex, 'Статус', 12);
+            $this->addHeaderRow($sheet, $cellIndex . $rowIndex . ':' . $chars[array_search($cellIndex, $chars) + $countTypes - 1] . $rowIndex, 'Статус', 12);
 
             if ($isAdmin) {
                 $cellIndex = $chars[array_search($cellIndex, $chars) + $countTypes - 1];
                 $cellIndex++;
-                addHeaderRow($sheet, $cellIndex . $rowIndex . ':' . $chars[array_search($cellIndex, $chars) + $countTypes - 1] . $rowIndex, 'Предприети действия', 12);
+                $this->addHeaderRow($sheet, $cellIndex . $rowIndex . ':' . $chars[array_search($cellIndex, $chars) + $countTypes - 1] . $rowIndex, 'Предприети действия', 12);
             }
 
             $rowIndex++;
 
             $cellIndex = 'A';
-            addHeaderRow($sheet, $cellIndex . $rowIndex, "Общо държави: " . (isset($brands['countries'][$continentId]) ? count($brands['countries'][$continentId]) : 0) . "\nОбщо население: " . (isset($brands['populations'][$continentId]) ? number_format($brands['populations'][$continentId], 0, ".", " ") : 0), 10, true, \PHPExcel_Style_Alignment::HORIZONTAL_LEFT);
+            $this->addHeaderRow($sheet, $cellIndex . $rowIndex, "Общо държави: " . (isset($brands['countries'][$continentId]) ? count($brands['countries'][$continentId]) : 0) . "\nОбщо население: " . (isset($brands['populations'][$continentId]) ? number_format($brands['populations'][$continentId], 0, ".", " ") : 0), 10, true, \PHPExcel_Style_Alignment::HORIZONTAL_LEFT);
             $sheet->getStyle($cellIndex . $rowIndex)->getAlignment()->setWrapText(true);
             $sheet->getColumnDimension($cellIndex)->setAutoSize(true);
 
             $cellIndex++;
             foreach (range(1, $maxRange) as $i) {
                 foreach ($brands['types'] as $type) {
-                    addHeaderRow($sheet, $cellIndex . $rowIndex, $type);
+                    $this->addHeaderRow($sheet, $cellIndex . $rowIndex, $type);
                     $sheet->getStyle($cellIndex . $rowIndex)->getAlignment()->setWrapText(true);
                     $sheet->getColumnDimension($cellIndex)->setWidth(20);
                     $cellIndex++;
@@ -612,5 +721,25 @@ class Reports extends Crud
         $writer->save('data/brand.xls');
 
         return new FileResponse('data/brand.xls');
+    }
+
+    protected function addHeaderRow($excelActiveSheet, $index, $value = '', $size = 10, $bold = true, $horizontal = null)
+    {
+        if ($horizontal == null) {
+            $horizontal = \PHPExcel_Style_Alignment::HORIZONTAL_CENTER;
+        }
+
+        $parts = explode(':', $index);
+
+        $excelActiveSheet->setCellValue($parts[0], $value);
+
+        if (isset($parts[1])) {
+            $excelActiveSheet->mergeCells($index);
+        }
+
+        $excelActiveSheet->getStyle($index)->getFont()->setBold($bold);
+        $excelActiveSheet->getStyle($index)->getFont()->setSize($size);
+        $excelActiveSheet->getStyle($index)->getAlignment()->setHorizontal($horizontal);
+        $excelActiveSheet->getStyle($index)->getAlignment()->setWrapText(true);
     }
 }

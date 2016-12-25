@@ -30,10 +30,10 @@ return array(
                 'label' => 'Континент',
                 'labelClass' => 'control-label',
                 'isArray' => 1,
-                'class' => 'form-control selectpicker',
+                'class' => 'form-control select2',
                 'belongsTo' => 'filters',
                 'multiOptions' => (new Nomenclatures\Model\Continents())->fetchCachedPairs(null, null, array('name' => 'asc')),
-                'attributes' => ['id' => 'continentId'],
+                'attributes' => ['id' => 'continentId', 'data-placeholder' => 'Изберете континент'],
             )
         ),
         'countryId' => array(
@@ -42,9 +42,9 @@ return array(
                 'label' => 'Държава',
                 'labelClass' => 'control-label',
                 'isArray' => 1,
-                'class' => 'form-control selectpicker',
+                'class' => 'form-control select2',
                 'belongsTo' => 'filters',
-                'attributes' => ['id' => 'countryId'],
+                'attributes' => ['id' => 'countryId', 'data-placeholder' => 'Изберете държава'],
             )
         ),
     )

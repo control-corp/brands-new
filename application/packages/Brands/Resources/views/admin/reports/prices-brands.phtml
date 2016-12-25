@@ -10,6 +10,9 @@ $this->extend('layouts/admin/default');
     <div class="row">
         <div class="col-md-12">
             <a class="btn btn-default" href="<?php echo route(null, ['action' => 'prices-continents', 'countryId' => null]); ?>">Назад</a>
+        <?php if (is_allowed('Brands\Controller\Admin\Reports@exportPricesBrands')) : ?>
+    		<a href="<?php echo route(\null, ['action' => 'export-prices-brands']); ?>" class="btn btn-primary">Export</a>
+        <?php endif; ?>
         </div>
     </div>
     <div class="row">

@@ -28,8 +28,18 @@ bootbox.setDefaults({
 	locale: 'bg_BG'
 });
 
+function attachSelect2(sel)
+{
+	if ($.fn.select2) {
+		$(sel).select2({
+			language: "bg"
+		});
+	}
+}
+
 $(function () {
 	
+	attachSelect2('.select2');
 	moveToErrors();
 	
 	$('.remove').on('click', function () {
