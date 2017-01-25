@@ -145,6 +145,17 @@ return array(
                 'sortable' => 1,
             )
         ),
+        'registerPermanentDate' => array(
+            'options' => array(
+                'sourceField' => 'registerPermanentDate',
+                'title' => 'Дата на първоначална регистрация',
+                'sortable' => 1,
+                'filter' => array(
+                    'callback' => 'toDate',
+                    'params'   => array('format' => 'd.m.Y')
+                )
+            )
+        ),
         'registerDate' => array(
             'options' => array(
                 'sourceField' => 'registerDate',

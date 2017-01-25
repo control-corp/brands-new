@@ -78,8 +78,10 @@ function checkBrand($c)
         }
     }
 	
-	$text .= 'Info' . NL
-	$text .= $infos;
+	if ($infos) {
+		$text .= NL . 'Info' . NL;
+		$text .= $infos;
+	}
 
     return $text;
 }

@@ -19,6 +19,7 @@ class Brand extends EntityAbstract
     protected $requestDate;
     protected $registerNum;
     protected $registerDate;
+    protected $registerPermanentDate;
     protected $reNewDate;
     protected $statusDate;
     protected $statusNote;
@@ -165,6 +166,16 @@ class Brand extends EntityAbstract
     public function setRegisterDate ($registerDate)
     {
         $this->registerDate = $registerDate;
+    }
+
+    public function getRegisterPermanentDate ()
+    {
+        return $this->registerPermanentDate;
+    }
+
+    public function setRegisterPermanentDate ($registerPermanentDate)
+    {
+        $this->registerPermanentDate = $registerPermanentDate;
     }
 
     public function getStatusDate ()

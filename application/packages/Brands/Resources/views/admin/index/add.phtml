@@ -53,6 +53,10 @@ $this->hookToMenu('main', 'brands', $label);
                             <?php echo $this->form->registerNum; ?>
                         </div>
                         <div class="col-md-3">
+                            <?php echo $this->form->registerPermanentDate->renderLabel(); ?>
+                            <?php echo $this->form->registerPermanentDate; ?>
+                        </div>
+                        <div class="col-md-3">
                             <?php echo $this->form->registerDate->renderLabel(); ?>
                             <?php echo $this->form->registerDate; ?>
                         </div>

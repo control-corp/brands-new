@@ -486,6 +486,15 @@ class Reports extends Crud
         $countries = array();
         $populations = array();
 
+        $db = $this->container['db'];
+        $pricesByCountries = $this->container['db']->fetchPairs('
+            SELECT Brands.countryId, SUM(IFNULL(BrandsStatusesRel.price, 0))
+            FROM Brands
+            INNER JOIN BrandsStatusesRel ON Brands.id = BrandsStatusesRel.brandId
+            WHERE Brands.name = ' . $db->quote($filters['brandId']) . '
+            GROUP BY Brands.countryId
+        ');
+
         foreach ($countriesRows as $countryRow) {
 
             if (empty($countryRow['continentId'])) {
@@ -527,7 +536,8 @@ class Reports extends Crud
             'statuses' => $statuses,
             'statusesColors' => $statusesColors,
             'filters' => $filters,
-            'currentCurrency' => $currentCurrency
+            'currentCurrency' => $currentCurrency,
+            'pricesByCountries' => $pricesByCountries,
         ];
     }
 
@@ -614,13 +624,15 @@ class Reports extends Crud
 
             if (isset($brands['countries'][$continentId])) {
 
+                $dummyBrand = new Brand();
+
                 foreach ($brands['countries'][$continentId] as $countryId => $country) {
 
                     $cellIndex = 'A';
 
                     $cellValue = $country['ISO3166Code'] . ' ' . $country['name'] . "\nНаселение: " . number_format($country['population'], 0, ".", " ");
 
-                    $totalPrice = 0;
+                    /* $totalPrice = 0;
                     $brandEntity = null;
                     foreach ($brands['types'] as $typeId => $type) {
                         if (isset($brands['brands'][$countryId][$typeId])) {
@@ -631,6 +643,12 @@ class Reports extends Crud
 
                     if ($brandEntity && $totalPrice > 0) {
                         $cellValue .= "\nОбща цена: " . $brandEntity->getFormatedPrice($totalPrice, $brands['currentCurrency']);
+                    } */
+
+                    $totalStatusPrice = isset($brands['pricesByCountries'][$countryId]) ? $brands['pricesByCountries'][$countryId] : 0;;
+
+                    if ($totalStatusPrice > 0) {
+                        $cellValue .= "\nОбща цена: " . $dummyBrand->setCountryId($countryId)->getFormatedPrice($totalStatusPrice, $brands['currentCurrency']);
                     }
 
                     $sheet->setCellValue($cellIndex . $rowIndex, $cellValue);
@@ -641,6 +659,7 @@ class Reports extends Crud
                     foreach ($brands['types'] as $typeId => $type) {
 
                         $cellValue = "";
+                        $brandEntity = null;
 
                         if (isset($brands['brands'][$countryId][$typeId])) {
                             $brandEntity = $brands['brands'][$countryId][$typeId];
@@ -661,6 +680,15 @@ class Reports extends Crud
                         }
 
                         $sheet->setCellValue($cellIndex . $rowIndex, $cellValue);
+
+                        if ($brandEntity) {
+                            $color = (isset($brands['statusesColors'][$brandEntity['statusId']]) ? $brands['statusesColors'][$brandEntity['statusId']] : null);
+                            $color = substr($color, 1);
+                            if (strlen($color) === 6) {
+                                $this->cellColor($sheet, $cellIndex . $rowIndex, $color);
+                            }
+                        }
+
                         $sheet->getStyle($cellIndex . $rowIndex)->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
                         $sheet->getStyle($cellIndex . $rowIndex)->getAlignment()->setVertical(\PHPExcel_Style_Alignment::VERTICAL_TOP);
                         $sheet->getStyle($cellIndex . $rowIndex)->getAlignment()->setWrapText(true);
@@ -721,6 +749,16 @@ class Reports extends Crud
         $writer->save('data/brand.xls');
 
         return new FileResponse('data/brand.xls');
+    }
+
+    protected function cellColor($excelActiveSheet, $cells, $color)
+    {
+        $excelActiveSheet->getStyle($cells)->getFill()->applyFromArray(array(
+            'type' => \PHPExcel_Style_Fill::FILL_SOLID,
+            'startcolor' => array(
+                'rgb' => $color
+            )
+        ));
     }
 
     protected function addHeaderRow($excelActiveSheet, $index, $value = '', $size = 10, $bold = true, $horizontal = null)

@@ -29,6 +29,11 @@ class Brands extends DatabaseAbstract
                 $entity->setDescription(null);
             }
 
+            if ($entity->getRegisterPermanentDate()) {
+                $date = new \DateTime($entity->getRegisterPermanentDate());
+                $entity->setRegisterPermanentDate($date->format('Y-m-d'));
+            }
+
             if ($entity->getRegisterDate()) {
                 $date = new \DateTime($entity->getRegisterDate());
                 $entity->setRegisterDate($date->format('Y-m-d'));

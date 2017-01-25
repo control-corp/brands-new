@@ -128,6 +128,15 @@ return array(
                 'class' => 'form-control'
             )
         ),
+        'registerPermanentDate' => array(
+            'type' => 'datepicker',
+            'options' => array(
+                'format' => 'd.m.Y',
+                'label' => 'Дата на първоначална регистрация',
+                'labelClass' => 'control-label',
+                'class' => 'datepicker form-control'
+            )
+        ),
         'registerDate' => array(
             'type' => 'datepicker',
             'options' => array(
