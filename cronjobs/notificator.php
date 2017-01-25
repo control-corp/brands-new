@@ -55,7 +55,8 @@ function checkBrand($c)
     $text = '';
 
     $now = date('Y-m-d');
-
+	$infos = '';
+	
     foreach($result as $set) {
 
         $date = new \DateTime($set['reNewDate']);
@@ -66,12 +67,19 @@ function checkBrand($c)
 
         $expire = date('Y-m-d', mktime(0, 0, 0, $m + $c['m'], $d + $c['d'], $y + $c['y']));
 
-        echo $set['id'] . ', renew: ' . $date->format('Y-m-d') . ', expire: ' . $expire . ', now: ' . $now . NL;
-
+        $info = $set['id'] . ', renew: ' . $date->format('Y-m-d') . ', expire: ' . $expire . ', now: ' . $now . NL;
+		
+		echo $info;
+		
+		$infos .= $info;
+		
         if ($expire == $now) {
-            $text .=  'Brand' . ': '. $set['name'] . " expires on " . $set['reNewDate'] . "\n";
+            $text .=  'Brand' . ': '. $set['name'] . " expires on " . $set['reNewDate'] . NL;
         }
     }
+	
+	$text .= 'Info' . NL
+	$text .= $infos;
 
     return $text;
 }
@@ -86,8 +94,8 @@ function sendMail($text)
         'k.taneva78@icygen.com'
     );
 
-    $mail->send('Изтичащи марки', $text, $to, 'k.taneva78@icygen.com');
-	$mail->send('Изтичащи марки', $text, $to, 'tousheto@gmail.com');
+    //$mail->send('Изтичащи марки', $text, $to, 'k.taneva78@icygen.com');
+	//$mail->send('Изтичащи марки', $text, $to, 'tousheto@gmail.com');
     
      /*$mail->addTo('k.taneva78@gmail.com');
      $mail->addTo('tousheto@gmail.com');
